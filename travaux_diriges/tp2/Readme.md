@@ -1,4 +1,4 @@
-# TD n° 2 - 27 Janvier 2025
+# TD n° 2 - 27 Janvier 2026
 
 ##  1. Parallélisation ensemble de Mandelbrot
 
