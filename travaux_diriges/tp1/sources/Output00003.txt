@@ -1,0 +1,5 @@
+Rang=3 nbp=6
+Echantillons_locaux=16666667
+Points_dans_le_cercle=13091239
+Pi_local=3.1418972971620542
+Temps_local(s)=0.463185

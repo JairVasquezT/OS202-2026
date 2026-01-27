@@ -1,0 +1,1 @@
+Rang: 4, Jeton reçu: 1, Temps: 0.000026 s
