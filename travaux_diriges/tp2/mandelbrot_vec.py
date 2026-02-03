@@ -1,5 +1,6 @@
 # Calcul de l'ensemble de Mandelbrot en python
 import numpy as np
+
 from dataclasses import dataclass
 from PIL import Image
 from math import log

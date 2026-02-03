@@ -77,26 +77,27 @@ if rank == 0:
 # Calcul de l'ensemble de mandelbrot:
 local_convergence = np.empty((local_height, width), dtype=np.double)
 
-for y in range(local_height):
-    global_y = rank * local_height + y
+for i, y in enumerate(range(rank, height, nbp)):
     for x in range(width):
-        c = complex(-2. + scaleX*x, -1.125 + scaleY * global_y)
-        
-        local_convergence[y, x] = mandelbrot_set.convergence(c, smooth=True)
+        c = complex(-2. + scaleX*x, -1.125 + scaleY * y)
+        local_convergence[i, x] = mandelbrot_set.convergence(c, smooth=True)
+fin = time()
 
-fin = time()    
 print(f"Proceso {rank} - Tiempo: {fin-deb}s")
 
-comm.Gather(local_convergence, full_convergence, root=0)
+recv_buffer = None
 
 if rank == 0:
-    print(f"Temps total de calcul : {fin-deb}") 
-    
-    deb_img = time()
+    recv_buffer = np.empty((height, width), dtype=np.double)
 
+comm.Gather(local_convergence, recv_buffer, root=0)
+
+if rank == 0:
+    full_convergence = np.empty((height, width), dtype=np.double)
+    for r in range(nbp):
+        full_convergence[r::nbp] = recv_buffer[r*local_height : (r+1)*local_height]
+
+    print(f"Temps total de calcul : {fin-deb:.3f}s")
     image = Image.fromarray(np.uint8(matplotlib.cm.plasma(full_convergence)*255))
-    fin_img = time()
-    
-    print(f"Temps de constitution de l'image : {fin_img-deb_img}")
-    image.show()
-    image.save("mandelbrot.png") 
+    image.save("mandelbrot_ciclico.png")
+    image.show() 
