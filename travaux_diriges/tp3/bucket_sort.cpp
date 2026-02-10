@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nbp);
 
-    int total_size = 1000000; // Aumentado para ver tiempos reales
+    int total_size = 1000000; 
     int min_val = 0;
     int max_val = 100000;
     std::vector<int> global_arr;
@@ -56,8 +56,8 @@ int main(int argc, char** argv) {
     std::vector<int> local_arr(local_size);
 
     if (rank == 0) {
-        generate_random_array(global_arr, total_size, min_val, max_val, 'n');
-        // print_array(global_arr); // Comentado para tamaños grandes
+        generate_random_array(global_arr, total_size, min_val, max_val, 'e'); // 'n' for normal, 'e' for exponential, 'u' for uniform
+        // print_array(global_arr); //optional for small sizes
     }
 
     // --- START GLOBAL TIMER ---
