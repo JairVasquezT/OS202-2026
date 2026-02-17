@@ -1,0 +1,12 @@
+
+Résultats pour flat (200x400) ---
+Moyenne Calcul : 0.899401 s
+Moyenne Affichage : 0.152213 s
+Moyenne Totale : 1.051614 s
+----------------------------------------
+
+Résultats pour flat (200x400) ---
+Moyenne Calcul : 0.911155 s
+Moyenne Affichage : 0.157801 s
+Moyenne Totale : 1.068956 s
+----------------------------------------

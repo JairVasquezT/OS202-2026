@@ -1,0 +1,12 @@
+
+Résultats pour flat (800x1600) - 2 processus --- (Vectorisé + Décomposition domaine)
+Moyenne Calcul : 0.002078 s
+Moyenne Affichage : 0.160299 s
+Moyenne Totale : 0.162377 s
+----------------------------------------
+
+Résultats pour flat (800x1600) - 2 processus --- (Vectorisé + Décomposition domaine)
+Moyenne Calcul : 0.002090 s
+Moyenne Affichage : 0.180441 s
+Moyenne Totale : 0.182531 s
+----------------------------------------

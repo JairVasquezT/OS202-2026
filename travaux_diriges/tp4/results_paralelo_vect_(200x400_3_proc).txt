@@ -1,0 +1,12 @@
+
+Résultats pour flat (200x400) - 3 processus --- (Vectorisé + Décomposition domaine)
+Moyenne Calcul : 0.002427 s
+Moyenne Affichage : 0.150425 s
+Moyenne Totale : 0.152852 s
+----------------------------------------
+
+Résultats pour flat (200x400) - 3 processus --- (Vectorisé + Décomposition domaine)
+Moyenne Calcul : 0.002496 s
+Moyenne Affichage : 0.161118 s
+Moyenne Totale : 0.163614 s
+----------------------------------------

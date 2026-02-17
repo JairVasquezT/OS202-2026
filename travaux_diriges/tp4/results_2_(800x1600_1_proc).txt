@@ -1,0 +1,12 @@
+
+Résultats pour flat (800x1600) - 1 processus ---
+Moyenne Calcul : 0.761920 s
+Moyenne Affichage : 0.161369 s
+Moyenne Totale : 0.923288 s
+----------------------------------------
+
+Résultats pour flat (800x1600) - 1 processus ---
+Moyenne Calcul : 0.756520 s
+Moyenne Affichage : 0.153479 s
+Moyenne Totale : 0.909999 s
+----------------------------------------

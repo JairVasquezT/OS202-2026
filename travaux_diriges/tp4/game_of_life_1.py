@@ -23,6 +23,10 @@ On itère ensuite pour étudier la façon dont évolue la population des cellule
 """
 import pygame  as pg
 import numpy   as np
+import multiprocessing as mp
+import ctypes
+import time
+import sys
 
 
 class Grille:
@@ -85,55 +89,87 @@ class Grille:
         self.cells = next_cells
         return diff_cells
 
+    def copier_vers_array_partage(self, array_partage, dims):
+        """Copie les cellules vers l'array partagé entre processus"""
+        # Accéder directement à la mémoire partagée avec frombuffer
+        array_reshaped = np.frombuffer(array_partage.get_obj(), dtype=np.uint8).reshape(dims)
+        array_reshaped[:] = self.cells
+
 
 class App:
     """
     Cette classe décrit la fenêtre affichant la grille à l'écran
         - geometry est un tuple de deux entiers donnant le nombre de pixels verticaux et horizontaux (dans cet ordre)
-        - grid est la grille décrivant l'automate cellulaire (voir plus haut)
+        - dims sont les dimensions de la grille
     """
-    def __init__(self, geometry, grid):
-        self.grid = grid
+    def __init__(self, geometry, dims, color_life=pg.Color("black"), color_dead=pg.Color("white")):
+        self.dimensions = dims
         # Calcul de la taille d'une cellule par rapport à la taille de la fenêtre et de la grille à afficher :
-        self.size_x = geometry[1]//grid.dimensions[1]
-        self.size_y = geometry[0]//grid.dimensions[0]
+        self.size_x = geometry[1]//dims[1]
+        self.size_y = geometry[0]//dims[0]
         if self.size_x > 4 and self.size_y > 4 :
             self.draw_color=pg.Color('lightgrey')
         else:
             self.draw_color=None
         # Ajustement de la taille de la fenêtre pour bien fitter la dimension de la grille
-        self.width = grid.dimensions[1] * self.size_x
-        self.height= grid.dimensions[0] * self.size_y
-        # Création de la fenêtre à l'aide de tkinter
+        self.width = dims[1] * self.size_x
+        self.height= dims[0] * self.size_y
+        # Création de la fenêtre
         self.screen = pg.display.set_mode((self.width,self.height))
-        #
-        self.canvas_cells = []
+        self.col_life = color_life
+        self.col_dead = color_dead
 
     def compute_rectangle(self, i: int, j: int):
-        """
-        Calcul la géométrie du rectangle correspondant à la cellule (i,j)
-        """
+        """Calcule la géométrie du rectangle correspondant à la cellule (i,j)"""
         return (self.size_x*j, self.height - self.size_y*(i + 1), self.size_x, self.size_y)
 
-    def compute_color(self, i: int, j: int):
-        if self.grid.cells[i,j] == 0:
-            return self.grid.col_dead
+    def compute_color(self, i: int, j: int, cells):
+        """Retourne la couleur selon l'état de la cellule"""
+        if cells[i,j] == 0:
+            return self.col_dead
         else:
-            return self.grid.col_life
+            return self.col_life
 
-    def draw(self):
-        [self.screen.fill(self.compute_color(i,j),self.compute_rectangle(i,j)) for i in range(self.grid.dimensions[0]) for j in range(self.grid.dimensions[1])]
+    def draw(self, cells):
+        """Affiche la grille à partir des données du array partagé"""
+        [self.screen.fill(self.compute_color(i,j,cells),self.compute_rectangle(i,j)) for i in range(self.dimensions[0]) for j in range(self.dimensions[1])]
         if (self.draw_color is not None):
-            [pg.draw.line(self.screen, self.draw_color, (0,i*self.size_y), (self.width,i*self.size_y)) for i in range(self.grid.dimensions[0])]
-            [pg.draw.line(self.screen, self.draw_color, (j*self.size_x,0), (j*self.size_x,self.height)) for j in range(self.grid.dimensions[1])]
+            [pg.draw.line(self.screen, self.draw_color, (0,i*self.size_y), (self.width,i*self.size_y)) for i in range(self.dimensions[0])]
+            [pg.draw.line(self.screen, self.draw_color, (j*self.size_x,0), (j*self.size_x,self.height)) for j in range(self.dimensions[1])]
         pg.display.update()
 
 
-if __name__ == '__main__':
-    import time
-    import sys
+def run_calcul(array_partage, dims, init_pattern, max_iter, evt_fin_affichage, evt_fin_calcul):
+    """
+    Processus de calcul: initialise la grille et boucle sur compute_next_iteration
+    """
+    grille = Grille(dims, init_pattern)
+    # Copier l'état initial dans l'array partagé
+    grille.copier_vers_array_partage(array_partage, dims)
+    # Signaler que l'initialisation est terminée APRÈS la copie
+    evt_fin_calcul.set()
+    
+    for iteration in range(max_iter):
+        # Attendre que l'affichage soit terminé
+        evt_fin_affichage.wait()
+        evt_fin_affichage.clear()
+        
+        # Mesurer le temps de calcul exactement
+        t1 = time.time()
+        grille.compute_next_iteration()
+        t2 = time.time()
+        
+        # Copier le résultat dans l'array partagé
+        grille.copier_vers_array_partage(array_partage, dims)
+        
+        # Afficher le temps de calcul
+        print(f"[Processus calcul] Iteration {iteration + 1}/{max_iter} - Temps calcul : {t2-t1:2.2e} secondes")
+        
+        # Signaler que le calcul est terminé APRÈS la copie des données
+        evt_fin_calcul.set()
 
-    pg.init()
+
+if __name__ == '__main__':
     dico_patterns = { # Dimension et pattern dans un tuple
         'blinker' : ((5,5),[(2,1),(2,2),(2,3)]),
         'toad'    : ((6,6),[(2,2),(2,3),(2,4),(3,3),(3,4),(3,5)]),
@@ -165,41 +201,87 @@ if __name__ == '__main__':
     except KeyError:
         print("No such pattern. Available ones are:", dico_patterns.keys())
         exit(1)
-    grid = Grille(*init_pattern)
-    appli = App((resx, resy), grid)
-
+    
+    # Récupérer les dimensions et le pattern initial
+    dims, pattern = init_pattern
+    
+    # Créer un array partagé pour la grille
+    array_partage = mp.Array(ctypes.c_uint8, dims[0] * dims[1])
+    
+    # Créer les événements de synchronisation
+    evt_fin_affichage = mp.Event()
+    evt_fin_calcul = mp.Event()
+    
     max_iter = 20
-    count=0
+    
+    # Lancer le processus de calcul
+    processus_calcul = mp.Process(target=run_calcul, args=(array_partage, dims, pattern, max_iter, evt_fin_affichage, evt_fin_calcul))
+    processus_calcul.start()
+    
+    # Initialiser pygame et l'application
+    pg.init()
+    appli = App((resx, resy), dims)
+    
+    # Attendre que le calcul initial soit terminé
+    evt_fin_calcul.wait()
+    evt_fin_calcul.clear()
+    
     mustContinue = True
+    count = 0
     stats_calcul = []
     stats_affichage = []
-
+    
+    # Créer la vue numpy de l'array partagé une seule fois
+    cells_array = np.frombuffer(array_partage.get_obj(), dtype=np.uint8).reshape(dims)
+    
+    # Boucle d'affichage dans le processus principal
     while mustContinue and count < max_iter:
-        #time.sleep(0.5) # A régler ou commenter pour vitesse maxi
-        t1 = time.time()
-        diff = grid.compute_next_iteration()
-        t2 = time.time()
-        appli.draw()
-        t3 = time.time()
-        stats_calcul.append(t2 - t1)
-        stats_affichage.append(t3 - t2)
-        count+=1
+        t1_aff = time.time()
+        
+        # Afficher
+        appli.draw(cells_array)
+        
+        t2_aff = time.time()
+        stats_affichage.append(t2_aff - t1_aff)
+        
+        # Signaler l'affichage terminé APRÈS le draw()
+        evt_fin_affichage.set()
+        
+        # Attendre le prochain calcul
+        evt_fin_calcul.wait()
+        evt_fin_calcul.clear()
+        
+        # Temps du calcul (approximé)
+        t_calcul = time.time() - t2_aff
+        stats_calcul.append(t_calcul)
+        
+        count += 1
         print(f"Iteration {count}/{max_iter}", end='\r')
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 mustContinue = False
-        print(f"Temps calcul prochaine generation : {t2-t1:2.2e} secondes, temps affichage : {t3-t2:2.2e} secondes\r", end='');
+        print(f"Temps affichage : {t2_aff - t1_aff:2.2e} s", end='\r')
     
-    avg_calc = sum(stats_calcul) / len(stats_calcul)
-    avg_aff = sum(stats_affichage) / len(stats_affichage)
+    # Attendre la fin du processus de calcul
+    processus_calcul.join()
+    
+    # Statistiques
+    if stats_calcul:
+        avg_calc = sum(stats_calcul) / len(stats_calcul)
+    else:
+        avg_calc = 0
+    if stats_affichage:
+        avg_aff = sum(stats_affichage) / len(stats_affichage)
+    else:
+        avg_aff = 0
     avg_total = avg_calc + avg_aff
 
-    with open(f"results_({resx}x{resy}).txt", "a") as f:
-        f.write(f"\nRésultats pour {choice} ({resx}x{resy}) ---\n")
+    with open(f"results_1_({resx}x{resy}).txt", "a") as f:
+        f.write(f"\nRésultats pour {choice} ({resx}x{resy}) --- (Parallélisé)\n")
         f.write(f"Moyenne Calcul : {avg_calc:.6f} s\n")
         f.write(f"Moyenne Affichage : {avg_aff:.6f} s\n")
         f.write(f"Moyenne Totale : {avg_total:.6f} s\n")
         f.write("-" * 40 + "\n")
 
-    print(f"\nCalcul terminé. Résultats sauvegardés dans results_({resx}x{resy}).txt")
+    print(f"\nCalcul terminé. Résultats sauvegardés dans results_1_({resx}x{resy}).txt")
     pg.quit()

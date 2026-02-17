@@ -1,0 +1,12 @@
+
+Résultats pour flat (400x800) - 3 processus ---
+Moyenne Calcul : 0.353632 s
+Moyenne Affichage : 0.170392 s
+Moyenne Totale : 0.524024 s
+----------------------------------------
+
+Résultats pour flat (400x800) - 3 processus ---
+Moyenne Calcul : 0.352286 s
+Moyenne Affichage : 0.157714 s
+Moyenne Totale : 0.510000 s
+----------------------------------------

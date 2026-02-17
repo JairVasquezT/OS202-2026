@@ -1,0 +1,12 @@
+
+Résultats pour flat (200x400) - 6 processus ---
+Moyenne Calcul : 0.252274 s
+Moyenne Affichage : 0.156705 s
+Moyenne Totale : 0.408979 s
+----------------------------------------
+
+Résultats pour flat (200x400) - 6 processus ---
+Moyenne Calcul : 0.270779 s
+Moyenne Affichage : 0.191313 s
+Moyenne Totale : 0.462093 s
+----------------------------------------

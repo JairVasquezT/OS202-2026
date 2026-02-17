@@ -173,16 +173,38 @@ if __name__ == '__main__':
     grid = Grille(*init_pattern)
     appli = App((resx, resy), grid)
 
+    max_iter = 100
+    count=0
     mustContinue = True
-    while mustContinue:
+    stats_calcul = []
+    stats_affichage = []
+    
+    while mustContinue and count < max_iter:
         t1 = time.time()
         diff = grid.compute_next_iteration()
         t2 = time.time()
         #time.sleep(500) # A régler ou commenter pour vitesse maxi
         appli.draw()
         t3 = time.time()
+        stats_calcul.append(t2 - t1)
+        stats_affichage.append(t3 - t2)
+        count+=1
+        print(f"Iteration {count}/{max_iter}", end='\r')
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 mustContinue = False
         print(f"Temps calcul prochaine generation : {t2-t1:2.2e} secondes, temps affichage : {t3-t2:2.2e} secondes\r", end='');
+
+    avg_calc = sum(stats_calcul) / len(stats_calcul)
+    avg_aff = sum(stats_affichage) / len(stats_affichage)
+    avg_total = avg_calc + avg_aff
+
+    with open(f"results_vect_({resx}x{resy}).txt", "a") as f:
+        f.write(f"\n Résultats pour {choice} ({resx}x{resy}) ---\n")
+        f.write(f"Moyenne Calcul : {avg_calc:.6f} s\n")
+        f.write(f"Moyenne Affichage : {avg_aff:.6f} s\n")
+        f.write(f"Moyenne Totale : {avg_total:.6f} s\n")
+        f.write("-" * 40 + "\n")
+
+    print(f"\nCalcul terminé. Résultats sauvegardés dans results_vect_({resx}x{resy}).txt")
     pg.quit()
