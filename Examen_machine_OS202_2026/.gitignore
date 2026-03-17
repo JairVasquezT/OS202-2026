@@ -1,3 +1,12 @@
-.mi_examen_env
-mi_examen_env
-/__pycache__/
+# Entornos virtuales
+mi_examen_env/
+env/
+venv/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+
+# Archivos de sistema y temporales
+.DS_Store
+*.pdf
